@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Research & Creation Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold mb-8 text-center text-gray-800">Content Research & Creation Suite</h1>
+        
+        <!-- Workflow Type Selection -->
+        <div class="mb-8 text-center">
+            <h2 class="text-2xl font-semibold mb-4">Choose Your Workflow</h2>
+            <div class="flex justify-center gap-4">
+                <button onclick="startWorkflow('recommend')" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600">
+                    Find Accounts
+                </button>
+                <button onclick="startWorkflow('research')" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600">
+                    Research Content
+                </button>
+                <button onclick="startWorkflow('full')" class="bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600">
+                    Full Workflow
+                </button>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="max-w-lg mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="category">
+                    Category/Topic
+                </label>
+                <input type="text" id="category" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                       placeholder="e.g., motivational fitness guy">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="numAccounts">
+                    Number of Accounts (1-20)
+                </label>
+                <input type="number" id="numAccounts" min="1" max="20" value="5" 
+                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="max-w-4xl mx-auto">
+            <!-- Accounts Section -->
+            <div id="accountsSection" class="mb-8 hidden">
+                <h3 class="text-xl font-semibold mb-4">Recommended Accounts</h3>
+                <div id="accountsList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Account cards will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Research Section -->
+            <div id="researchSection" class="mb-8 hidden">
+                <h3 class="text-xl font-semibold mb-4">Content Research</h3>
+                <div id="researchResults" class="bg-white rounded-lg shadow-md p-6">
+                    <!-- Research results will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Content Section -->
+            <div id="contentSection" class="mb-8 hidden">
+                <h3 class="text-xl font-semibold mb-4">Generated Content</h3>
+                <div id="contentList" class="space-y-4">
+                    <!-- Generated content will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+            <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p class="text-center mt-4 text-lg font-semibold" id="loadingText">Starting workflow...</p>
+                <p class="text-center mt-2 text-sm text-gray-600" id="loadingStage"></p>
+                <div class="mt-4 w-full bg-gray-200 rounded-full h-2.5">
+                    <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STAGES = {
+            'initializing': { text: 'Initializing...', progress: 5 },
+            'getting_recommendations': { text: 'Getting recommendations from AI...', progress: 20 },
+            'parsing_recommendations': { text: 'Processing AI suggestions...', progress: 40 },
+            'enriching_data': { text: 'Verifying account details...', progress: 60 },
+            'accounts_found': { text: 'Found matching accounts!', progress: 80 },
+            'researching_x': { text: 'Researching X content...', progress: 85 },
+            'researching_youtube': { text: 'Researching YouTube content...', progress: 90 },
+            'editing_content': { text: 'Generating content...', progress: 95 },
+            'completed': { text: 'Completed!', progress: 100 }
+        };
+
+        async function startWorkflow(type) {
+            const category = document.getElementById('category').value.trim();
+            const numAccounts = parseInt(document.getElementById('numAccounts').value);
+            
+            if (!category) {
+                alert('Please enter a category');
+                return;
+            }
+
+            if (category.split(' ').length > 5) {
+                alert('Please use at most 5 category filters for best results');
+                return;
+            }
+            
+            showLoading('Starting workflow...');
+            updateProgress('initializing');
+            
+            try {
+                const response = await fetch('/api/workflow', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        type,
+                        category,
+                        num_accounts: numAccounts
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayResults(data, type);
+                } else {
+                    const errorMessage = data.message || 'An error occurred';
+                    const stage = data.stage ? ` (during ${data.stage})` : '';
+                    alert(`Error${stage}: ${errorMessage}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while processing your request');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function displayResults(data, type) {
+            // Clear previous results
+            document.getElementById('accountsList').innerHTML = '';
+            document.getElementById('researchResults').innerHTML = '';
+            document.getElementById('contentList').innerHTML = '';
+            
+            // Hide all sections first
+            document.getElementById('accountsSection').classList.add('hidden');
+            document.getElementById('researchSection').classList.add('hidden');
+            document.getElementById('contentSection').classList.add('hidden');
+            
+            // Display accounts if available
+            if (data.accounts && data.accounts.length > 0) {
+                const accountsSection = document.getElementById('accountsSection');
+                const accountsList = document.getElementById('accountsList');
+                accountsList.innerHTML = data.accounts.map(account => `
+                    <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+                        <div class="font-semibold text-lg mb-2">@${account.name || account.username}</div>
+                        <div class="text-sm text-gray-600 mb-2">${account.description || 'No description available'}</div>
+                        <div class="text-sm">
+                            <span class="font-medium">${(account.followers_count || 0).toLocaleString()}</span> followers
+                        </div>
+                        <div class="mt-2 text-sm text-gray-500">${account.reason || 'Matched search criteria'}</div>
+                    </div>
+                `).join('');
+                accountsSection.classList.remove('hidden');
+            }
+            
+            // Display research if available
+            if (data.research && Object.keys(data.research).length > 0) {
+                const researchSection = document.getElementById('researchSection');
+                const researchResults = document.getElementById('researchResults');
+                researchResults.innerHTML = `
+                    <div class="prose">
+                        ${data.research.x ? `
+                            <h4 class="text-lg font-semibold mb-2">X Research</h4>
+                            <pre class="bg-gray-100 p-4 rounded overflow-auto">${JSON.stringify(data.research.x, null, 2)}</pre>
+                        ` : ''}
+                        ${data.research.youtube ? `
+                            <h4 class="text-lg font-semibold mb-2 mt-4">YouTube Research</h4>
+                            <pre class="bg-gray-100 p-4 rounded overflow-auto">${JSON.stringify(data.research.youtube, null, 2)}</pre>
+                        ` : ''}
+                    </div>
+                `;
+                researchSection.classList.remove('hidden');
+            }
+            
+            // Display content if available
+            if (data.content && data.content.length > 0) {
+                const contentSection = document.getElementById('contentSection');
+                const contentList = document.getElementById('contentList');
+                contentList.innerHTML = data.content.map(post => `
+                    <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+                        <div class="text-gray-800">${post.content}</div>
+                        <div class="mt-2 text-sm text-gray-500">
+                            Category: ${post.category}
+                        </div>
+                    </div>
+                `).join('');
+                contentSection.classList.remove('hidden');
+            }
+        }
+        
+        function showLoading(text) {
+            const loading = document.getElementById('loading');
+            const loadingText = document.getElementById('loadingText');
+            loadingText.textContent = text;
+            loading.classList.remove('hidden');
+            loading.classList.add('flex');
+        }
+        
+        function updateProgress(stage) {
+            const stageInfo = STAGES[stage] || { text: 'Processing...', progress: 50 };
+            const loadingStage = document.getElementById('loadingStage');
+            const progressBar = document.getElementById('progressBar');
+            
+            loadingStage.textContent = stageInfo.text;
+            progressBar.style.width = `${stageInfo.progress}%`;
+        }
+        
+        function hideLoading() {
+            const loading = document.getElementById('loading');
+            loading.classList.add('hidden');
+            loading.classList.remove('flex');
+            // Reset progress bar
+            document.getElementById('progressBar').style.width = '0%';
+        }
+    </script>
+</body>
+</html>

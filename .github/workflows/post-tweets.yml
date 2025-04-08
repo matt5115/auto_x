@@ -2,7 +2,7 @@ name: Post Scheduled Tweets
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Run every 15 minutes
+    - cron: '0 * * * *'  # Run every hour at minute 0
   workflow_dispatch:  # Allow manual trigger
 
 concurrency:

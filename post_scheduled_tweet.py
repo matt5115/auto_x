@@ -22,9 +22,13 @@ def post_due_tweets():
     est = pytz.timezone('America/New_York')
     current_time = datetime.now(est)
     
-    # Load schedule
-    with open('scheduled_posts.json', 'r') as f:
-        data = json.load(f)
+    try:
+        # Load schedule
+        with open('scheduled_posts.json', 'r') as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        print("No scheduled posts found")
+        return
     
     # Track which posts to remove
     posts_to_remove = []
@@ -46,6 +50,8 @@ def post_due_tweets():
     # Remove posted tweets from schedule
     if posts_to_remove:
         data['schedule'] = [post for post in data['schedule'] if post not in posts_to_remove]
+        
+        # Save updated schedule
         with open('scheduled_posts.json', 'w') as f:
             json.dump(data, f, indent=2)
 

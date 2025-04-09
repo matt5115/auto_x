@@ -8,14 +8,14 @@ on:
 jobs:
   post-tweets:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    permissions:
+      contents: write  # Needed to update scheduled_posts.json
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        ref: main
-        fetch-depth: 1
+        ref: ${{ github.head_ref || github.ref_name }}
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -25,18 +25,27 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -q tweepy python-dotenv pytz
+        pip install tweepy python-dotenv pytz
     
     - name: Create .env file
       run: |
-        cat << EOF > .env
-        X_API_KEY='${{ secrets.X_API_KEY }}'
-        X_API_SECRET='${{ secrets.X_API_SECRET }}'
-        X_ACCESS_TOKEN='${{ secrets.X_ACCESS_TOKEN }}'
-        X_ACCESS_TOKEN_SECRET='${{ secrets.X_ACCESS_TOKEN_SECRET }}'
-        EOF
-        
+        echo "X_API_KEY='${{ secrets.X_API_KEY }}'" > .env
+        echo "X_API_SECRET='${{ secrets.X_API_SECRET }}'" >> .env
+        echo "X_ACCESS_TOKEN='${{ secrets.X_ACCESS_TOKEN }}'" >> .env
+        echo "X_ACCESS_TOKEN_SECRET='${{ secrets.X_ACCESS_TOKEN_SECRET }}'" >> .env
+    
+    - name: Configure Git
+      run: |
+        git config --global user.name "GitHub Action"
+        git config --global user.email "action@github.com"
+    
     - name: Run posting script
-      run: python -u post_scheduled_tweet.py
-      env:
-        PYTHONUNBUFFERED: 1
+      run: python post_scheduled_tweet.py
+    
+    - name: Commit changes if any
+      run: |
+        if [[ -n $(git status -s) ]]; then
+          git add scheduled_posts.json
+          git commit -m "Update scheduled posts [skip ci]"
+          git push
+        fi

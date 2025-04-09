@@ -6,103 +6,133 @@ import pytz
 from dotenv import load_dotenv
 import sys
 
-def post_due_tweets():
+def check_env_vars():
+    """Verify all required environment variables are set."""
+    required_vars = ['X_API_KEY', 'X_API_SECRET', 'X_ACCESS_TOKEN', 'X_ACCESS_TOKEN_SECRET']
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    if missing_vars:
+        print(f"Error: Missing environment variables: {', '.join(missing_vars)}")
+        return False
+    return True
+
+def load_schedule():
+    """Load and validate the schedule file."""
     try:
-        # Load environment variables
-        load_dotenv()
-        
-        # Verify environment variables
-        required_vars = ['X_API_KEY', 'X_API_SECRET', 'X_ACCESS_TOKEN', 'X_ACCESS_TOKEN_SECRET']
-        missing_vars = [var for var in required_vars if not os.getenv(var)]
-        if missing_vars:
-            print(f"Error: Missing environment variables: {', '.join(missing_vars)}")
-            sys.exit(1)
-        
-        print("Environment variables loaded successfully")
-        
-        # Initialize Twitter API v2 client
-        try:
-            client = tweepy.Client(
-                consumer_key=os.getenv('X_API_KEY'),
-                consumer_secret=os.getenv('X_API_SECRET'),
-                access_token=os.getenv('X_ACCESS_TOKEN'),
-                access_token_secret=os.getenv('X_ACCESS_TOKEN_SECRET'),
-                wait_on_rate_limit=True
-            )
-            print("Twitter client initialized successfully")
-        except Exception as e:
-            print(f"Error initializing Twitter client: {str(e)}")
-            sys.exit(1)
-        
-        # Get current time in EST
-        est = pytz.timezone('America/New_York')
-        current_time = datetime.now(est)
-        print(f"Current time (EST): {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        
-        # Load and validate schedule
-        try:
-            if not os.path.exists('scheduled_posts.json'):
-                print("Error: scheduled_posts.json not found")
-                sys.exit(1)
-                
-            with open('scheduled_posts.json', 'r') as f:
-                data = json.load(f)
-                
-            if not isinstance(data, dict) or 'schedule' not in data:
-                print("Error: Invalid format in scheduled_posts.json")
-                sys.exit(1)
-                
-            print("Schedule loaded successfully")
-            print(f"Number of scheduled posts: {len(data['schedule'])}")
-                
-        except json.JSONDecodeError:
-            print("Error: Invalid JSON in scheduled_posts.json")
-            sys.exit(1)
-        except Exception as e:
-            print(f"Error reading schedule: {str(e)}")
-            sys.exit(1)
-        
-        # Find the earliest scheduled post that's due
-        due_post = None
-        earliest_time = None
-        
-        for post in data['schedule']:
-            try:
-                scheduled_time = datetime.strptime(post['time'], '%Y-%m-%d %H:%M:%S')
-                scheduled_time = est.localize(scheduled_time)
-                
-                if current_time >= scheduled_time and (earliest_time is None or scheduled_time < earliest_time):
-                    due_post = post
-                    earliest_time = scheduled_time
-            except (ValueError, KeyError) as e:
-                print(f"Warning: Invalid post format in schedule: {str(e)}")
-                continue
-        
-        # If we found a due post, post it
-        if due_post:
-            try:
-                print(f"Attempting to post tweet scheduled for {earliest_time.strftime('%Y-%m-%d %H:%M:%S')}")
-                response = client.create_tweet(text=due_post['content'])
-                print(f"Successfully posted tweet at {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-                
-                # Remove the posted tweet from schedule
-                data['schedule'] = [post for post in data['schedule'] if post != due_post]
-                with open('scheduled_posts.json', 'w') as f:
-                    json.dump(data, f, indent=2)
-                print("Removed posted tweet from schedule")
-                
-            except tweepy.TooManyRequests as e:
-                print(f"Rate limit exceeded: {str(e)}")
-                sys.exit(1)
-            except Exception as e:
-                print(f"Error posting tweet: {str(e)}")
-                sys.exit(1)
-        else:
-            print("No posts are due at this time")
+        if not os.path.exists('scheduled_posts.json'):
+            print("Error: scheduled_posts.json not found")
+            return None
             
+        with open('scheduled_posts.json', 'r') as f:
+            data = json.load(f)
+            
+        if not isinstance(data, dict) or 'schedule' not in data:
+            print("Error: Invalid format in scheduled_posts.json")
+            return None
+            
+        print(f"Schedule loaded successfully. Found {len(data['schedule'])} posts.")
+        return data
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON in scheduled_posts.json")
+        return None
+    except Exception as e:
+        print(f"Error reading schedule: {str(e)}")
+        return None
+
+def get_twitter_client():
+    """Initialize the Twitter API client."""
+    try:
+        client = tweepy.Client(
+            consumer_key=os.getenv('X_API_KEY'),
+            consumer_secret=os.getenv('X_API_SECRET'),
+            access_token=os.getenv('X_ACCESS_TOKEN'),
+            access_token_secret=os.getenv('X_ACCESS_TOKEN_SECRET'),
+            wait_on_rate_limit=True
+        )
+        # Test the credentials with a simple call
+        client.get_me()
+        print("Twitter client initialized and authenticated successfully")
+        return client
+    except Exception as e:
+        print(f"Error initializing Twitter client: {str(e)}")
+        return None
+
+def find_due_post(data, current_time):
+    """Find the earliest post that is due."""
+    due_post = None
+    earliest_time = None
+    est = pytz.timezone('America/New_York')
+    
+    for post in data['schedule']:
+        try:
+            scheduled_time = datetime.strptime(post['time'], '%Y-%m-%d %H:%M:%S')
+            scheduled_time = est.localize(scheduled_time)
+            
+            if current_time >= scheduled_time and (earliest_time is None or scheduled_time < earliest_time):
+                due_post = post
+                earliest_time = scheduled_time
+        except (ValueError, KeyError) as e:
+            print(f"Warning: Invalid post format: {str(e)}")
+            continue
+    
+    return due_post, earliest_time
+
+def post_due_tweets():
+    """Main function to post due tweets."""
+    print("\n=== Starting tweet posting process ===")
+    
+    # Load environment variables from both .env and system
+    load_dotenv()
+    
+    # Check environment variables
+    if not check_env_vars():
+        sys.exit(1)
+    
+    # Initialize Twitter client
+    client = get_twitter_client()
+    if client is None:
+        sys.exit(1)
+    
+    # Load schedule
+    data = load_schedule()
+    if data is None:
+        sys.exit(1)
+    
+    # Get current time in EST
+    est = pytz.timezone('America/New_York')
+    current_time = datetime.now(est)
+    print(f"Current time (EST): {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # Find due post
+    due_post, earliest_time = find_due_post(data, current_time)
+    
+    # Post tweet if one is due
+    if due_post:
+        try:
+            print(f"Attempting to post tweet scheduled for {earliest_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Tweet content: {due_post['content']}")
+            
+            response = client.create_tweet(text=due_post['content'])
+            print(f"Successfully posted tweet at {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Tweet ID: {response.data['id']}")
+            
+            # Remove the posted tweet from schedule
+            data['schedule'] = [post for post in data['schedule'] if post != due_post]
+            with open('scheduled_posts.json', 'w') as f:
+                json.dump(data, f, indent=2)
+            print("Removed posted tweet from schedule")
+            
+        except tweepy.TooManyRequests as e:
+            print(f"Rate limit exceeded: {str(e)}")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error posting tweet: {str(e)}")
+            sys.exit(1)
+    else:
+        print("No posts are due at this time")
+
+if __name__ == "__main__":
+    try:
+        post_due_tweets()
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
         sys.exit(1)
-
-if __name__ == "__main__":
-    post_due_tweets()

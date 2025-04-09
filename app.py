@@ -1,29 +1,15 @@
-from flask import Flask, request, jsonify, render_template
-import logging
-import os
-from dotenv import load_dotenv
-import user_recommender
-import x_research_agent
-import youtube_research_agent
-import editor_agent
+from flask import Flask
 import json
 import tweepy
+import os
+from datetime import datetime
 import pytz
+from dotenv import load_dotenv
 import threading
 import time
 import sys
 
-# Load environment variables
-load_dotenv(override=True)
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "default-secret-key")
-
-# ... (rest of the original code remains the same)
 
 def post_due_tweets():
     while True:
@@ -93,12 +79,12 @@ def post_due_tweets():
             print(f"Unexpected error: {str(e)}")
             time.sleep(60)  # Wait a minute before retrying
 
-@app.route('/tweet_scheduler')
-def tweet_scheduler_home():
+@app.route('/')
+def home():
     return 'Tweet Scheduler is running'
 
-@app.route('/tweet_scheduler/health')
-def tweet_scheduler_health():
+@app.route('/health')
+def health():
     return 'OK'
 
 def start_scheduler():
@@ -110,4 +96,4 @@ if __name__ == '__main__':
     # Start the scheduler in a separate thread
     start_scheduler()
     # Run the Flask app
-    app.run(debug=True, port=5009)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))

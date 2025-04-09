@@ -5,68 +5,38 @@ on:
     - cron: '0 * * * *'  # Run every hour at minute 0
   workflow_dispatch:  # Allow manual trigger
 
-concurrency:
-  group: post-scheduled-tweets
-  cancel-in-progress: true
-
 jobs:
   post-tweets:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
+        ref: main
         fetch-depth: 1
     
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install tweepy python-dotenv pytz
-      
-    - name: Verify repository contents
+        pip install -q tweepy python-dotenv pytz
+    
+    - name: Create .env file
       run: |
-        echo "Current directory:"
-        pwd
-        echo "\nRepository contents:"
-        ls -la
-        echo "\nWorkflow directory contents:"
-        ls -la .github/workflows/
-        echo "\nPython version:"
-        python --version
+        cat << EOF > .env
+        X_API_KEY='${{ secrets.X_API_KEY }}'
+        X_API_SECRET='${{ secrets.X_API_SECRET }}'
+        X_ACCESS_TOKEN='${{ secrets.X_ACCESS_TOKEN }}'
+        X_ACCESS_TOKEN_SECRET='${{ secrets.X_ACCESS_TOKEN_SECRET }}'
+        EOF
         
-    - name: Create and verify .env file
-      run: |
-        echo "X_API_KEY='${{ secrets.X_API_KEY }}'" > .env
-        echo "X_API_SECRET='${{ secrets.X_API_SECRET }}'" >> .env
-        echo "X_ACCESS_TOKEN='${{ secrets.X_ACCESS_TOKEN }}'" >> .env
-        echo "X_ACCESS_TOKEN_SECRET='${{ secrets.X_ACCESS_TOKEN_SECRET }}'" >> .env
-        echo "\nVerifying .env file exists:"
-        ls -la .env
-        echo "\nChecking .env file format (without showing secrets):"
-        grep -v "'" .env | grep "="
-    
-    - name: Verify scheduled posts
-      run: |
-        echo "Checking scheduled_posts.json:"
-        if [ -f "scheduled_posts.json" ]; then
-          echo "File exists"
-          echo "File contents:"
-          cat scheduled_posts.json
-        else
-          echo "ERROR: scheduled_posts.json not found"
-          exit 1
-        fi
-    
     - name: Run posting script
-      run: |
-        echo "Starting post_scheduled_tweet.py"
-        python -u post_scheduled_tweet.py
+      run: python -u post_scheduled_tweet.py
       env:
         PYTHONUNBUFFERED: 1

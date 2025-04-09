@@ -4,7 +4,6 @@ import os
 from datetime import datetime
 import pytz
 from dotenv import load_dotenv
-import time
 
 def post_due_tweets():
     # Load environment variables
@@ -31,48 +30,39 @@ def post_due_tweets():
         print("No scheduled posts found")
         return
     
-    # Track which posts to remove
-    posts_to_remove = []
-    posts_attempted = 0
+    # Find the earliest scheduled post that's due
+    due_post = None
+    earliest_time = None
     
-    # Check for posts that should be posted now
     for post in data['schedule']:
-        # If we've attempted 3 posts in this run, stop to avoid rate limits
-        if posts_attempted >= 3:
-            print("Reached post limit for this run. Remaining posts will be handled in next run.")
-            break
-            
         scheduled_time = datetime.strptime(post['time'], '%Y-%m-%d %H:%M:%S')
         scheduled_time = est.localize(scheduled_time)
         
-        # If it's time to post (or past time), post it
-        if current_time >= scheduled_time:
-            try:
-                print(f"Attempting to post: {post['content'][:50]}...")
-                response = client.create_tweet(text=post['content'])
-                print(f"Successfully posted tweet at {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-                posts_to_remove.append(post)
-                posts_attempted += 1
-                
-                # Add a delay between posts to avoid rate limits
-                if posts_attempted < 3:
-                    print("Waiting 30 seconds before next post...")
-                    time.sleep(30)
-                    
-            except tweepy.TooManyRequests as e:
-                print(f"Rate limit exceeded. Will try again in next run.")
-                break
-            except Exception as e:
-                print(f"Error posting tweet: {str(e)}")
+        # If post is due and either it's the first due post we've found
+        # or it's earlier than our current earliest
+        if current_time >= scheduled_time and (earliest_time is None or scheduled_time < earliest_time):
+            due_post = post
+            earliest_time = scheduled_time
     
-    # Remove posted tweets from schedule
-    if posts_to_remove:
-        data['schedule'] = [post for post in data['schedule'] if post not in posts_to_remove]
-        with open('scheduled_posts.json', 'w') as f:
-            json.dump(data, f, indent=2)
-        print(f"Removed {len(posts_to_remove)} posted tweets from schedule")
+    # If we found a due post, post it
+    if due_post:
+        try:
+            print(f"Attempting to post: {due_post['content'][:50]}...")
+            response = client.create_tweet(text=due_post['content'])
+            print(f"Successfully posted tweet at {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            # Remove the posted tweet from schedule
+            data['schedule'] = [post for post in data['schedule'] if post != due_post]
+            with open('scheduled_posts.json', 'w') as f:
+                json.dump(data, f, indent=2)
+            print("Removed posted tweet from schedule")
+            
+        except tweepy.TooManyRequests as e:
+            print(f"Rate limit exceeded. Will try again in next run.")
+        except Exception as e:
+            print(f"Error posting tweet: {str(e)}")
     else:
-        print("No posts were due at this time")
+        print("No posts are due at this time")
 
 if __name__ == "__main__":
     post_due_tweets()

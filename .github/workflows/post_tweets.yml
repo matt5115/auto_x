@@ -5,22 +5,26 @@ on:
     - cron: '0 * * * *'  # Run every hour at minute 0
   workflow_dispatch:  # Allow manual trigger
 
+permissions:
+  contents: write  # Repository-level permission
+
 jobs:
   post-tweets:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Needed to update scheduled_posts.json
+    # No concurrency block - let each run complete independently
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        ref: ${{ github.head_ref || github.ref_name }}
+        token: ${{ secrets.GITHUB_TOKEN }}  # Explicit token for checkout
+        fetch-depth: 0  # Full history to ensure clean commits
     
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
+        cache: 'pip'
     
     - name: Install dependencies
       run: |
@@ -36,15 +40,18 @@ jobs:
     
     - name: Configure Git
       run: |
-        git config --global user.name "GitHub Action"
-        git config --global user.email "action@github.com"
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
     
     - name: Run posting script
       run: python post_scheduled_tweet.py
+      env:
+        PYTHONUNBUFFERED: 1  # Ensure we see output immediately
     
     - name: Commit changes if any
       run: |
         if [[ -n $(git status -s) ]]; then
+          git pull --rebase  # Ensure we have latest changes
           git add scheduled_posts.json
           git commit -m "Update scheduled posts [skip ci]"
           git push

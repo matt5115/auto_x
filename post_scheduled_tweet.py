@@ -29,6 +29,13 @@ def load_schedule():
             print("Error: Invalid format in scheduled_posts.json")
             return None
             
+        # Initialize post status if not present
+        for post in data['schedule']:
+            if 'status' not in post:
+                post['status'] = 'pending'
+            if 'attempts' not in post:
+                post['attempts'] = 0
+                
         print(f"Schedule loaded successfully. Found {len(data['schedule'])} posts.")
         return data
     except json.JSONDecodeError:
@@ -57,13 +64,17 @@ def get_twitter_client():
         return None
 
 def find_due_post(data, current_time):
-    """Find the earliest post that is due."""
+    """Find the earliest pending post that is due."""
     due_post = None
     earliest_time = None
     est = pytz.timezone('America/New_York')
     
     for post in data['schedule']:
         try:
+            # Skip posts that are already handled
+            if post['status'] in ['posted', 'error_duplicate']:
+                continue
+                
             scheduled_time = datetime.strptime(post['time'], '%Y-%m-%d %H:%M:%S')
             scheduled_time = est.localize(scheduled_time)
             
@@ -75,6 +86,25 @@ def find_due_post(data, current_time):
             continue
     
     return due_post, earliest_time
+
+def save_schedule(data):
+    """Save the schedule back to file."""
+    try:
+        with open('scheduled_posts.json', 'w') as f:
+            json.dump(data, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving schedule: {str(e)}")
+        return False
+
+def update_post_status(data, post, status, tweet_id=None):
+    """Update post status and save to file."""
+    post['status'] = status
+    post['attempts'] += 1
+    post['last_attempt'] = datetime.now(pytz.UTC).strftime('%Y-%m-%d %H:%M:%S %Z')
+    if tweet_id:
+        post['tweet_id'] = tweet_id
+    return save_schedule(data)
 
 def post_due_tweets():
     """Main function to post due tweets."""
@@ -111,24 +141,38 @@ def post_due_tweets():
             print(f"Attempting to post tweet scheduled for {earliest_time.strftime('%Y-%m-%d %H:%M:%S')}")
             print(f"Tweet content: {due_post['content']}")
             
-            response = client.create_tweet(text=due_post['content'])
+            # Add timestamp to avoid duplicate content error
+            timestamp = current_time.strftime('%I:%M %p ET')
+            tweet_text = f"{due_post['content']} ({timestamp})"
+            
+            response = client.create_tweet(text=tweet_text)
+            tweet_id = response.data['id']
             print(f"Successfully posted tweet at {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"Tweet ID: {response.data['id']}")
+            print(f"Tweet ID: {tweet_id}")
             
-            # Remove the posted tweet from schedule
-            data['schedule'] = [post for post in data['schedule'] if post != due_post]
-            with open('scheduled_posts.json', 'w') as f:
-                json.dump(data, f, indent=2)
-            print("Removed posted tweet from schedule")
+            # Update post status
+            if update_post_status(data, due_post, 'posted', tweet_id):
+                print("Updated post status to 'posted'")
+            else:
+                print("Warning: Failed to update post status")
             
+        except tweepy.errors.Forbidden as e:
+            error_message = str(e).lower()
+            if "duplicate" in error_message:
+                print("Duplicate tweet detected, marking as duplicate and skipping...")
+                update_post_status(data, due_post, 'error_duplicate')
+            else:
+                print(f"Permission error posting tweet: {str(e)}")
+                update_post_status(data, due_post, 'error_permission')
         except tweepy.TooManyRequests as e:
             print(f"Rate limit exceeded: {str(e)}")
+            update_post_status(data, due_post, 'error_rate_limit')
             sys.exit(1)
         except Exception as e:
             print(f"Error posting tweet: {str(e)}")
-            sys.exit(1)
+            update_post_status(data, due_post, 'error_unknown')
     else:
-        print("No posts are due at this time")
+        print("No pending posts are due at this time")
 
 if __name__ == "__main__":
     try:

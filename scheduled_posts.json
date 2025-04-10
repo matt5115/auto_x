@@ -1,84 +1,118 @@
 {
   "schedule": [
     {
-      "content": "I've seen a lot of fear out there. But I'm not selling. Bitcoin's my long game\u2014tariffs and headlines don't shake that.",
-      "time": "2025-04-09 11:37:16"
-    },
-    {
       "content": "I bought some Bitcoin today. Worst case? I learn. Best case? I got in before the crowd.",
-      "time": "2025-04-09 19:45:00"
+      "time": "2025-04-09 19:45:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "Friendly reminder: exchanges aren't your wallet. I moved mine off today. Control matters.",
-      "time": "2025-04-10 10:30:00"
+      "time": "2025-04-10 10:30:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
-      "content": "My bank doesn't care if I win or lose. But Bitcoin? That's in *my* hands\u2014if I hold the keys.",
-      "time": "2025-04-10 15:15:00"
+      "content": "My bank doesn't care if I win or lose. But Bitcoin? That's in *my* hands—if I hold the keys.",
+      "time": "2025-04-10 15:15:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
-      "content": "Look around\u2014chaos everywhere. But Bitcoin? Still standing strong. That says a lot.",
-      "time": "2025-04-10 20:45:00"
+      "content": "Look around—chaos everywhere. But Bitcoin? Still standing strong. That says a lot.",
+      "time": "2025-04-10 20:45:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "Bitcoin just keeps going. It's quiet, but powerful. I'm not sleeping on it.",
-      "time": "2025-04-11 09:30:00"
+      "time": "2025-04-11 09:30:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "Why am I stacking Bitcoin instead of dollars? Because it actually *holds* value.",
-      "time": "2025-04-11 14:15:00"
+      "time": "2025-04-11 14:15:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "I don't see Bitcoin as risky. I see it as protection. Against a system that's not working.",
-      "time": "2025-04-11 19:45:00"
+      "time": "2025-04-11 19:45:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "Bitcoin's flowing off exchanges lately. I'm doing the same. Cold storage = peace of mind.",
-      "time": "2025-04-12 10:30:00"
+      "time": "2025-04-12 10:30:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "While the old system scrambles, Bitcoin keeps doing what it's designed to do. I'm here for that.",
-      "time": "2025-04-12 15:15:00"
+      "time": "2025-04-12 15:15:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
-      "content": "I've said it before\u2014if your Bitcoin's on an exchange, it's not really yours. Learned that the hard way once.",
-      "time": "2025-04-12 20:45:00"
+      "content": "I've said it before—if your Bitcoin's on an exchange, it's not really yours. Learned that the hard way once.",
+      "time": "2025-04-12 20:45:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "I missed the hedge last year. Not this time. Bitcoin's my play.",
-      "time": "2025-04-13 09:30:00"
+      "time": "2025-04-13 09:30:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "Some folks are panic-selling. I'm zooming out. Bitcoin's still outperforming.",
-      "time": "2025-04-13 14:15:00"
+      "time": "2025-04-13 14:15:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "They called Bitcoin a Ponzi. I call it the exit from one.",
-      "time": "2025-04-13 19:45:00"
+      "time": "2025-04-13 19:45:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
-      "content": "I trust exchanges less every day. Took mine off today. Tick\u2026 tick\u2026",
-      "time": "2025-04-14 10:30:00"
+      "content": "I trust exchanges less every day. Took mine off today. Tick… tick…",
+      "time": "2025-04-14 10:30:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
-      "content": "HODLing isn't about faith. It's about math\u2014and I like the odds.",
-      "time": "2025-04-14 15:15:00"
+      "content": "HODLing isn't about faith. It's about math—and I like the odds.",
+      "time": "2025-04-14 15:15:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
-      "content": "People say Bitcoin is hype. I say it's gravity. The system's falling\u2014Bitcoin isn't.",
-      "time": "2025-04-14 20:45:00"
+      "content": "People say Bitcoin is hype. I say it's gravity. The system's falling—Bitcoin isn't.",
+      "time": "2025-04-14 20:45:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "Watching my savings get eaten by inflation hurt. Bitcoin's my freezer now.",
-      "time": "2025-04-15 09:30:00"
+      "time": "2025-04-15 09:30:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "Honestly? If I had to bet on one thing in this mess, it's Bitcoin.",
-      "time": "2025-04-15 14:15:00"
+      "time": "2025-04-15 14:15:00",
+      "status": "pending",
+      "attempts": 0
     },
     {
       "content": "Stocks make me dizzy. Bitcoin feels like a straight climb.",
-      "time": "2025-04-15 19:45:00"
+      "time": "2025-04-15 19:45:00",
+      "status": "pending",
+      "attempts": 0
     }
   ]
 }

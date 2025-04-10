@@ -29,13 +29,6 @@ def load_schedule():
             print("Error: Invalid format in scheduled_posts.json")
             return None
             
-        # Initialize post status if not present
-        for post in data['schedule']:
-            if 'status' not in post:
-                post['status'] = 'pending'
-            if 'attempts' not in post:
-                post['attempts'] = 0
-                
         print(f"Schedule loaded successfully. Found {len(data['schedule'])} posts.")
         return data
     except json.JSONDecodeError:
@@ -72,7 +65,7 @@ def find_due_post(data, current_time):
     for post in data['schedule']:
         try:
             # Skip posts that are already handled
-            if post['status'] in ['posted', 'error_duplicate']:
+            if post['status'] != 'pending':
                 continue
                 
             scheduled_time = datetime.strptime(post['time'], '%Y-%m-%d %H:%M:%S')
@@ -81,10 +74,19 @@ def find_due_post(data, current_time):
             if current_time >= scheduled_time and (earliest_time is None or scheduled_time < earliest_time):
                 due_post = post
                 earliest_time = scheduled_time
+                
+            # Debug output for each post
+            print(f"Post time: {scheduled_time}, Status: {post['status']}, Due: {current_time >= scheduled_time}")
+                
         except (ValueError, KeyError) as e:
             print(f"Warning: Invalid post format: {str(e)}")
             continue
     
+    if due_post:
+        print(f"Found due post scheduled for {earliest_time}")
+    else:
+        print("No pending posts are due")
+        
     return due_post, earliest_time
 
 def save_schedule(data):
@@ -92,6 +94,7 @@ def save_schedule(data):
     try:
         with open('scheduled_posts.json', 'w') as f:
             json.dump(data, f, indent=2)
+        print("Successfully saved schedule to file")
         return True
     except Exception as e:
         print(f"Error saving schedule: {str(e)}")
@@ -104,7 +107,9 @@ def update_post_status(data, post, status, tweet_id=None):
     post['last_attempt'] = datetime.now(pytz.UTC).strftime('%Y-%m-%d %H:%M:%S %Z')
     if tweet_id:
         post['tweet_id'] = tweet_id
-    return save_schedule(data)
+    saved = save_schedule(data)
+    print(f"Updated post status to '{status}' and {'saved' if saved else 'failed to save'} to file")
+    return saved
 
 def post_due_tweets():
     """Main function to post due tweets."""

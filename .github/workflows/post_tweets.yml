@@ -8,6 +8,11 @@ on:
 permissions:
   contents: write  # Repository-level permission
 
+# Ensure only one workflow runs at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   post-tweets:
     runs-on: ubuntu-latest
@@ -31,9 +36,16 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip list  # Show installed packages for debugging
     
-    - name: List files
-      run: ls -la  # Debug step to verify files
+    - name: Debug environment
+      run: |
+        pwd
+        ls -la
+        echo "Python version:"
+        python --version
+        echo "Current directory contents:"
+        ls -R
     
     - name: Verify secrets
       run: |
@@ -45,6 +57,11 @@ jobs:
           exit 1
         fi
         echo "All required secrets are set"
+        echo "Secret lengths:"
+        echo "X_API_KEY length: ${#X_API_KEY}"
+        echo "X_API_SECRET length: ${#X_API_SECRET}"
+        echo "X_ACCESS_TOKEN length: ${#X_ACCESS_TOKEN}"
+        echo "X_ACCESS_TOKEN_SECRET length: ${#X_ACCESS_TOKEN_SECRET}"
     
     - name: Create .env file
       run: |
@@ -54,7 +71,8 @@ jobs:
         X_ACCESS_TOKEN='${{ secrets.X_ACCESS_TOKEN }}'
         X_ACCESS_TOKEN_SECRET='${{ secrets.X_ACCESS_TOKEN_SECRET }}'
         EOF
-        cat .env  # Debug step (will only show variable names, not values)
+        echo "Created .env file:"
+        cat .env | sed 's/=.*/=REDACTED/'  # Show file structure but hide values
     
     - name: Configure Git
       run: |
@@ -65,6 +83,10 @@ jobs:
       run: python -u post_scheduled_tweet.py  # Added -u for unbuffered output
       env:
         PYTHONUNBUFFERED: 1
+        X_API_KEY: ${{ secrets.X_API_KEY }}
+        X_API_SECRET: ${{ secrets.X_API_SECRET }}
+        X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+        X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
     
     - name: Commit changes if any
       run: |

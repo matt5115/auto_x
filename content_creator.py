@@ -14,6 +14,37 @@ RESEARCH_FILE = "research_agent_output.json"
 OUTPUT_FILE = "raw_posts.json"
 MARKDOWN_FILE = "generated_posts.md"
 
+# Predefined Bitcoin posts
+BITCOIN_POSTS = [
+    "I've seen a lot of fear out there. But I'm not selling. Bitcoin's my long game—tariffs and headlines don't shake that.",
+    "I bought some Bitcoin today. Worst case? I learn. Best case? I got in before the crowd.",
+    "Friendly reminder: exchanges aren't your wallet. I moved mine off today. Control matters.",
+    "My bank doesn't care if I win or lose. But Bitcoin? That's in *my* hands—if I hold the keys.",
+    "Look around—chaos everywhere. But Bitcoin? Still standing strong. That says a lot.",
+    "Bitcoin just keeps going. It's quiet, but powerful. I'm not sleeping on it.",
+    "Why am I stacking Bitcoin instead of dollars? Because it actually *holds* value.",
+    "I don't see Bitcoin as risky. I see it as protection. Against a system that's not working.",
+    "Bitcoin's flowing off exchanges lately. I'm doing the same. Cold storage = peace of mind.",
+    "While the old system scrambles, Bitcoin keeps doing what it's designed to do. I'm here for that.",
+    "I've said it before—if your Bitcoin's on an exchange, it's not really yours. Learned that the hard way once.",
+    "I missed the hedge last year. Not this time. Bitcoin's my play.",
+    "Some folks are panic-selling. I'm zooming out. Bitcoin's still outperforming.",
+    "They called Bitcoin a Ponzi. I call it the exit from one.",
+    "I trust exchanges less every day. Took mine off today. Tick… tick…",
+    "HODLing isn't about faith. It's about math—and I like the odds.",
+    "People say Bitcoin is hype. I say it's gravity. The system's falling—Bitcoin isn't.",
+    "Watching my savings get eaten by inflation hurt. Bitcoin's my freezer now.",
+    "Honestly? If I had to bet on one thing in this mess, it's Bitcoin.",
+    "Stocks make me dizzy. Bitcoin feels like a straight climb.",
+    "Trust me on this: no one's coming to save your Bitcoin on an exchange. Get your keys.",
+    "Bitcoin's not for everyone. But if you're looking ahead, it starts to make sense.",
+    "Don't wait for the crash. That's what I used to do. Bitcoin taught me to be early.",
+    "This isn't a hype train. It's a life raft. I grabbed it—still room left.",
+    "I stopped letting headlines shake me. Bitcoin's built for storms.",
+    "I don't see Bitcoin as optional anymore. It's a must-have in this economy.",
+    "I'm holding my Bitcoin close. Because if I don't, someone else will."
+]
+
 
 def extract_categories(insights_text):
     """Extract unique categories from insights"""
@@ -101,7 +132,17 @@ def save_raw_posts(posts_by_category):
     print(f"Saved {len(new_posts)} new posts to {OUTPUT_FILE}")
 
 
-def create_posts_for_category(insights_text, category, num_posts=2):
+def create_posts_for_category(insights_text, category, num_posts=1):
+    """
+    If category is 'bitcoin', returns a predefined post.
+    Otherwise, generates posts using GPT-4.
+    """
+    if category.lower() == 'bitcoin':
+        # Get a single post from the predefined list based on timestamp
+        current_time = datetime.datetime.now()
+        index = int(current_time.timestamp()) % len(BITCOIN_POSTS)
+        return [BITCOIN_POSTS[index]]
+    
     prompt = f"""
 You are a Bitcoin content creator. Generate {num_posts} unique, original X (Twitter) posts focused on the category: {category}.
 
@@ -133,7 +174,7 @@ Respond ONLY with a numbered list of X posts, nothing else.
     return posts
 
 
-def run_content_creator(num_posts_per_category=2):
+def run_content_creator(num_posts_per_category=1):
     insights_text, categories = load_research_data()
     if not insights_text or not categories:
         return
@@ -149,4 +190,4 @@ def run_content_creator(num_posts_per_category=2):
 
 
 if __name__ == "__main__":
-    run_content_creator(num_posts_per_category=2)
+    run_content_creator(num_posts_per_category=1)

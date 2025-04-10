@@ -141,11 +141,7 @@ def post_due_tweets():
             print(f"Attempting to post tweet scheduled for {earliest_time.strftime('%Y-%m-%d %H:%M:%S')}")
             print(f"Tweet content: {due_post['content']}")
             
-            # Add timestamp to avoid duplicate content error
-            timestamp = current_time.strftime('%I:%M %p ET')
-            tweet_text = f"{due_post['content']} ({timestamp})"
-            
-            response = client.create_tweet(text=tweet_text)
+            response = client.create_tweet(text=due_post['content'])
             tweet_id = response.data['id']
             print(f"Successfully posted tweet at {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
             print(f"Tweet ID: {tweet_id}")

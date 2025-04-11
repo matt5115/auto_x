@@ -26,6 +26,9 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python content_creator.py
           
+      - name: Schedule new posts
+        run: python schedule_posts.py
+          
       - name: Post scheduled tweets
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
@@ -33,3 +36,11 @@ jobs:
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
         run: python post_scheduled_tweet.py
+        
+      - name: Commit and push if there are changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add scheduled_posts.json raw_posts.json generated_posts.md
+          git commit -m "Update scheduled posts and content" || exit 0
+          git push

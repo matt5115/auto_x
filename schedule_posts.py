@@ -3,10 +3,28 @@ import datetime
 import pytz
 import os
 
+# Get the directory containing this script
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def ensure_file_exists(filepath, default_content):
+    """Create file with default content if it doesn't exist"""
+    if not os.path.exists(filepath):
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, 'w') as f:
+            json.dump(default_content, f, indent=2)
+        print(f"Created new file: {filepath}")
+
+def get_file_path(filename):
+    """Get absolute path for a file"""
+    return os.path.join(SCRIPT_DIR, filename)
+
 def load_raw_posts():
     """Load posts from raw_posts.json"""
+    raw_posts_file = get_file_path('raw_posts.json')
+    ensure_file_exists(raw_posts_file, {'raw_posts': []})
+    
     try:
-        with open('raw_posts.json', 'r') as f:
+        with open(raw_posts_file, 'r') as f:
             data = json.load(f)
             return data.get('raw_posts', [])
     except (FileNotFoundError, json.JSONDecodeError) as e:
@@ -15,11 +33,15 @@ def load_raw_posts():
 
 def load_scheduled_posts():
     """Load existing scheduled posts"""
+    scheduled_posts_file = get_file_path('scheduled_posts.json')
+    ensure_file_exists(scheduled_posts_file, {'schedule': []})
+    
     try:
-        with open('scheduled_posts.json', 'r') as f:
+        with open(scheduled_posts_file, 'r') as f:
             data = json.load(f)
             return data.get('schedule', [])
-    except (FileNotFoundError, json.JSONDecodeError):
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error loading scheduled posts: {str(e)}")
         return []
 
 def schedule_new_posts():
@@ -54,10 +76,13 @@ def schedule_new_posts():
     all_posts = scheduled_posts + new_scheduled_posts
     
     # Save updated schedule
-    with open('scheduled_posts.json', 'w') as f:
+    scheduled_posts_file = get_file_path('scheduled_posts.json')
+    with open(scheduled_posts_file, 'w') as f:
         json.dump({'schedule': all_posts}, f, indent=2)
     
     print(f"Added {len(new_scheduled_posts)} new posts to schedule")
+    print(f"Total scheduled posts: {len(all_posts)}")
+    print(f"Schedule file: {scheduled_posts_file}")
 
 if __name__ == "__main__":
     schedule_new_posts()

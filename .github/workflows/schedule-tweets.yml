@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -21,13 +23,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
+      - name: Debug - List files before
+        run: |
+          pwd
+          ls -la
+          
       - name: Run content creator
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python content_creator.py
+        run: |
+          python content_creator.py
+          ls -la raw_posts.json || echo "raw_posts.json not found"
+          cat raw_posts.json || echo "Cannot read raw_posts.json"
           
       - name: Schedule new posts
-        run: python schedule_posts.py
+        run: |
+          python schedule_posts.py
+          ls -la scheduled_posts.json || echo "scheduled_posts.json not found"
+          cat scheduled_posts.json || echo "Cannot read scheduled_posts.json"
           
       - name: Post scheduled tweets
         env:
@@ -35,12 +48,18 @@ jobs:
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
-        run: python post_scheduled_tweet.py
-        
+        run: |
+          python post_scheduled_tweet.py
+          
+      - name: Debug - List files after
+        run: |
+          ls -la
+          
       - name: Commit and push if there are changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add scheduled_posts.json raw_posts.json generated_posts.md
-          git commit -m "Update scheduled posts and content" || exit 0
-          git push
+          git add scheduled_posts.json raw_posts.json generated_posts.md || true
+          git status
+          git commit -m "Update scheduled posts and content [skip ci]" || echo "No changes to commit"
+          git push || echo "No changes to push"

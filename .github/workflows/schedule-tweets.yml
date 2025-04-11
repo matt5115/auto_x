@@ -2,7 +2,7 @@ name: Schedule Tweets
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Runs every 30 minutes
+    - cron: '*/15 * * * *'  # Runs every 15 minutes
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
@@ -24,5 +24,12 @@ jobs:
       - name: Run content creator
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          # Add other environment variables as needed
         run: python content_creator.py
+          
+      - name: Post scheduled tweets
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+        run: python post_scheduled_tweet.py

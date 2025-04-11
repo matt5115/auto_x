@@ -1,0 +1,113 @@
+name: Post Scheduled Tweets
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Run every hour at minute 0
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write  # Needed for pushing changes
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  post-tweets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GH_PAT }}  # Use PAT instead of GITHUB_TOKEN
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip list
+
+    - name: Debug environment
+      run: |
+        pwd
+        ls -la
+        echo "Python version:"
+        python --version
+        echo "Current directory contents:"
+        ls -R
+        echo "Git status:"
+        git status
+        echo "Git remote:"
+        git remote -v
+
+    - name: Verify secrets
+      run: |
+        if [ -z "${{ secrets.X_API_KEY }}" ] || \
+           [ -z "${{ secrets.X_API_SECRET }}" ] || \
+           [ -z "${{ secrets.X_ACCESS_TOKEN }}" ] || \
+           [ -z "${{ secrets.X_ACCESS_TOKEN_SECRET }}" ]; then
+          echo "Error: Missing required secrets"
+          exit 1
+        fi
+        echo "All required secrets are set"
+
+    - name: Create .env file
+      run: |
+        cat << EOF > .env
+        X_API_KEY='${{ secrets.X_API_KEY }}'
+        X_API_SECRET='${{ secrets.X_API_SECRET }}'
+        X_ACCESS_TOKEN='${{ secrets.X_ACCESS_TOKEN }}'
+        X_ACCESS_TOKEN_SECRET='${{ secrets.X_ACCESS_TOKEN_SECRET }}'
+        EOF
+        echo ".env file created"
+
+    - name: Configure Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        # Ensure we're on main branch
+        git checkout main
+        # Set up authentication
+        git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git
+
+    - name: Run posting script
+      run: python -u post_scheduled_tweet.py
+      env:
+        PYTHONUNBUFFERED: 1
+        X_API_KEY: ${{ secrets.X_API_KEY }}
+        X_API_SECRET: ${{ secrets.X_API_SECRET }}
+        X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+        X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+
+    - name: Debug Git status
+      run: |
+        echo "Git status after script:"
+        git status
+        echo "Current branch:"
+        git branch --show-current
+
+    - name: Commit changes if any
+      run: |
+        # Ensure we're on main branch
+        git checkout main
+        # Pull latest changes
+        git pull origin main --rebase
+        
+        if [[ -n $(git status -s) ]]; then
+          echo "Changes detected, committing..."
+          git add scheduled_posts.json
+          git commit -m "Update scheduled posts [skip ci]"
+          echo "Pushing changes..."
+          git push origin main
+        else
+          echo "No changes to commit"
+        fi

@@ -3,23 +3,27 @@
     {
       "content": "I bought some Bitcoin today. Worst case? I learn. Best case? I got in before the crowd.",
       "time": "2025-04-09 19:45:00",
-      "status": "pending",
-      "attempts": 0
+      "status": "error_duplicate",
+      "attempts": 1,
+      "last_attempt": "2025-04-11 14:42:05 UTC"
     },
     {
       "content": "Friendly reminder: exchanges aren't your wallet. I moved mine off today. Control matters.",
       "time": "2025-04-10 10:30:00",
-      "status": "pending",
-      "attempts": 0
+      "status": "error_expired",
+      "attempts": 1,
+      "last_attempt": "2025-04-11 14:48:03 UTC"
     },
     {
-      "content": "My bank doesn't care if I win or lose. But Bitcoin? That's in *my* hands—if I hold the keys.",
+      "content": "My bank doesn't care if I win or lose. But Bitcoin? That's in *my* hands\u2014if I hold the keys.",
       "time": "2025-04-10 15:15:00",
-      "status": "pending",
-      "attempts": 0
+      "status": "posted",
+      "attempts": 1,
+      "last_attempt": "2025-04-11 14:48:04 UTC",
+      "tweet_id": "1910706423048405483"
     },
     {
-      "content": "Look around—chaos everywhere. But Bitcoin? Still standing strong. That says a lot.",
+      "content": "Look around\u2014chaos everywhere. But Bitcoin? Still standing strong. That says a lot.",
       "time": "2025-04-10 20:45:00",
       "status": "pending",
       "attempts": 0
@@ -55,7 +59,7 @@
       "attempts": 0
     },
     {
-      "content": "I've said it before—if your Bitcoin's on an exchange, it's not really yours. Learned that the hard way once.",
+      "content": "I've said it before\u2014if your Bitcoin's on an exchange, it's not really yours. Learned that the hard way once.",
       "time": "2025-04-12 20:45:00",
       "status": "pending",
       "attempts": 0
@@ -79,19 +83,19 @@
       "attempts": 0
     },
     {
-      "content": "I trust exchanges less every day. Took mine off today. Tick… tick…",
+      "content": "I trust exchanges less every day. Took mine off today. Tick\u2026 tick\u2026",
       "time": "2025-04-14 10:30:00",
       "status": "pending",
       "attempts": 0
     },
     {
-      "content": "HODLing isn't about faith. It's about math—and I like the odds.",
+      "content": "HODLing isn't about faith. It's about math\u2014and I like the odds.",
       "time": "2025-04-14 15:15:00",
       "status": "pending",
       "attempts": 0
     },
     {
-      "content": "People say Bitcoin is hype. I say it's gravity. The system's falling—Bitcoin isn't.",
+      "content": "People say Bitcoin is hype. I say it's gravity. The system's falling\u2014Bitcoin isn't.",
       "time": "2025-04-14 20:45:00",
       "status": "pending",
       "attempts": 0

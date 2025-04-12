@@ -1,18 +1,7 @@
 import json
-from openai import OpenAI
-from dotenv import load_dotenv
-import os
 import datetime
-
-# Load environment variables
-load_dotenv()
-
-# Initialize OpenAI client
-client = OpenAI()
-
-RESEARCH_FILE = "research_agent_output.json"
-OUTPUT_FILE = "raw_posts.json"
-MARKDOWN_FILE = "generated_posts.md"
+import os
+from random import randint
 
 # Predefined Bitcoin posts
 BITCOIN_POSTS = [
@@ -45,149 +34,96 @@ BITCOIN_POSTS = [
     "I'm holding my Bitcoin close. Because if I don't, someone else will."
 ]
 
-
-def extract_categories(insights_text):
-    """Extract unique categories from insights"""
-    categories = set()
-    lines = insights_text.split('\n')
-    for line in lines:
-        if line.strip().startswith('- Category:'):
-            category = line.split(':', 1)[1].strip()
-            categories.add(category)
-    return list(categories)
-
-
-def load_research_data(filename=RESEARCH_FILE):
+def ensure_file_exists(filepath, default_content):
+    """Create file with default content if it doesn't exist"""
     try:
-        with open(filename, "r") as f:
-            data = json.load(f)
-        # Get the most recent insights
-        insights = data.get("insights", [])
-        if not insights:
-            print(f"Error: No insights found in {filename}")
-            return "", []
-        latest_insight = insights[-1]  # Get the most recent insight
-        categories = extract_categories(latest_insight["content"])
-        return latest_insight["content"], categories
-    except FileNotFoundError:
-        print(f"Error: {filename} not found.")
-        return "", []
-    except (KeyError, json.JSONDecodeError) as e:
-        print(f"Error reading {filename}: {str(e)}")
-        return "", []
+        if not os.path.exists(filepath):
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, 'w') as f:
+                json.dump(default_content, f, indent=2)
+            print(f"Created new file: {filepath}")
+    except Exception as e:
+        print(f"Warning: Could not create {filepath}: {str(e)}")
 
-
-def save_to_markdown(posts_by_category):
-    timestamp = datetime.datetime.now().isoformat()
+def get_random_posts(num_posts=1):
+    """Get random posts from the predefined list"""
+    selected_posts = []
+    available_posts = BITCOIN_POSTS.copy()
     
-    # Load existing content if file exists
+    for _ in range(min(num_posts, len(available_posts))):
+        if not available_posts:
+            break
+        index = randint(0, len(available_posts) - 1)
+        selected_posts.append(available_posts.pop(index))
+    
+    return selected_posts
+
+def save_to_markdown(posts):
+    """Save posts to markdown file"""
     try:
-        with open(MARKDOWN_FILE, "r") as f:
-            existing_content = f.read()
-    except FileNotFoundError:
-        existing_content = "# Generated Bitcoin Posts\n\n"
-    
-    # Prepare new content
-    new_content = f"\n## Posts Generated at {timestamp}\n\n"
-    
-    for category, posts in posts_by_category.items():
-        new_content += f"### Category: {category}\n\n"
+        timestamp = datetime.datetime.now().isoformat()
+        content = f"# Generated Bitcoin Posts\n\n## Posts Generated at {timestamp}\n\n"
+        
         for i, post in enumerate(posts, 1):
-            new_content += f"#### {i}. Tweet\n"
-            new_content += f"```\n{post}\n```\n"
-            new_content += f"Characters: {len(post)}\n\n"
-    
-    # Combine and write content
-    with open(MARKDOWN_FILE, "w") as f:
-        f.write(existing_content + new_content)
-    print(f"Added posts to {MARKDOWN_FILE}")
+            content += f"### {i}. Tweet\n```\n{post}\n```\n"
+            content += f"Characters: {len(post)}\n\n"
+        
+        with open('generated_posts.md', 'w') as f:
+            f.write(content)
+        print("Successfully saved to generated_posts.md")
+    except Exception as e:
+        print(f"Warning: Could not save to markdown: {str(e)}")
 
-
-def save_raw_posts(posts_by_category):
-    # Load existing posts if available
+def save_raw_posts(posts):
+    """Save posts to raw_posts.json"""
     try:
-        with open(OUTPUT_FILE, "r") as f:
-            data = json.load(f)
-            existing_posts = data.get("raw_posts", [])
-    except (FileNotFoundError, json.JSONDecodeError):
-        existing_posts = []
-    
-    # Add timestamp to new posts
-    timestamp = datetime.datetime.now().isoformat()
-    new_posts = []
-    
-    for category, posts in posts_by_category.items():
+        timestamp = datetime.datetime.now().isoformat()
+        new_posts = []
+        
         for post in posts:
             new_posts.append({
-                "content": post,
-                "category": category,
-                "timestamp": timestamp,
-                "characters": len(post)
+                'content': post,
+                'category': 'bitcoin',
+                'timestamp': timestamp,
+                'characters': len(post)
             })
-    
-    # Combine and save
-    all_posts = existing_posts + new_posts
-    with open(OUTPUT_FILE, "w") as f:
-        json.dump({"raw_posts": all_posts}, f, indent=4)
-    print(f"Saved {len(new_posts)} new posts to {OUTPUT_FILE}")
+        
+        # Load existing posts if available
+        try:
+            with open('raw_posts.json', 'r') as f:
+                data = json.load(f)
+                existing_posts = data.get('raw_posts', [])
+        except (FileNotFoundError, json.JSONDecodeError):
+            existing_posts = []
+        
+        # Combine and save
+        all_posts = existing_posts + new_posts
+        with open('raw_posts.json', 'w') as f:
+            json.dump({'raw_posts': all_posts}, f, indent=2)
+        print(f"Successfully saved {len(new_posts)} new posts to raw_posts.json")
+    except Exception as e:
+        print(f"Warning: Could not save to raw_posts.json: {str(e)}")
 
-
-def create_posts_for_category(insights_text, category, num_posts=1):
-    """
-    If category is 'bitcoin', returns a predefined post.
-    Otherwise, generates posts using GPT-4.
-    """
-    if category.lower() == 'bitcoin':
-        # Get a single post from the predefined list based on timestamp
-        current_time = datetime.datetime.now()
-        index = int(current_time.timestamp()) % len(BITCOIN_POSTS)
-        return [BITCOIN_POSTS[index]]
-    
-    prompt = f"""
-You are a Bitcoin content creator. Generate {num_posts} unique, original X (Twitter) posts focused on the category: {category}.
-
-Each post must:
-- Be under 280 characters
-- Be focused specifically on the {category} aspect of Bitcoin
-- Be informative and engaging
-- NOT promote any books or products
-- NOT use hashtags
-- Be factual and educational
-- Vary in style (questions, statements, insights, etc.)
-
-Use the insights below for inspiration and factual basis, but create original content:
-
-{insights_text}
-
-Respond ONLY with a numbered list of X posts, nothing else.
-"""
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.9,
-        max_tokens=1000
-    )
-
-    output = response.choices[0].message.content
-    posts = [line.strip("0123456789. ") for line in output.split("\n") if line.strip()]
-    posts = [p for p in posts if 0 < len(p) <= 280]
-    return posts
-
-
-def run_content_creator(num_posts_per_category=1):
-    insights_text, categories = load_research_data()
-    if not insights_text or not categories:
-        return
-    
-    posts_by_category = {}
-    for category in categories:
-        category_posts = create_posts_for_category(insights_text, category, num_posts_per_category)
-        if category_posts:
-            posts_by_category[category] = category_posts
-    
-    save_raw_posts(posts_by_category)
-    save_to_markdown(posts_by_category)
-
+def run_content_creator(num_posts=1):
+    """Main function to create and save posts"""
+    try:
+        # Ensure files exist
+        ensure_file_exists('raw_posts.json', {'raw_posts': []})
+        ensure_file_exists('generated_posts.md', '')
+        
+        # Get random posts
+        posts = get_random_posts(num_posts)
+        if not posts:
+            print("Error: No posts generated")
+            return
+        
+        # Save posts
+        save_raw_posts(posts)
+        save_to_markdown(posts)
+        
+        print("Content creation completed successfully")
+    except Exception as e:
+        print(f"Error in content creation: {str(e)}")
 
 if __name__ == "__main__":
-    run_content_creator(num_posts_per_category=1)
+    run_content_creator(num_posts=1)

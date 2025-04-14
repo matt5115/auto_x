@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Tweet Reply Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen" x-data="{
+    tweetText: '',
+    tweetUrl: '',
+    tones: [],
+    characterLimit: 280,
+    showAdvancedOptions: false,
+    reply: '',
+    loading: false,
+    error: '',
+    characterCount: 0,
+    copied: false,
+    
+    async generateReply() {
+        if (!this.tweetText && !this.tweetUrl) {
+            this.error = 'Please enter a tweet URL or text';
+            return;
+        }
+        
+        if (this.tones.length === 0) {
+            this.error = 'Please select at least one tone';
+            return;
+        }
+        
+        this.loading = true;
+        this.error = '';
+        this.reply = '';
+        
+        try {
+            const response = await fetch('/api/generate-reply', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    tweet_text: this.tweetText,
+                    tweet_url: this.tweetUrl,
+                    tones: this.tones,
+                    character_limit: this.characterLimit
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                this.reply = data.reply;
+                this.characterCount = data.character_count;
+            } else {
+                this.error = data.message || 'Error generating reply';
+            }
+        } catch (error) {
+            this.error = 'Network error. Please try again.';
+        } finally {
+            this.loading = false;
+        }
+    },
+    
+    copyToClipboard() {
+        if (!this.reply) return;
+        
+        navigator.clipboard.writeText(this.reply).then(() => {
+            this.copied = true;
+            setTimeout(() => this.copied = false, 2000);
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+        });
+    }
+}">
+    <!-- Header Section -->
+    <header class="bg-white shadow-md py-4 px-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Custom Tweet Reply Generator</h1>
+        <p class="text-sm md:text-base text-gray-600">Generate tweet replies in your own voice</p>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Input Area -->
+        <div class="max-w-3xl mx-auto mb-8 bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Tweet Input</h2>
+            
+            <!-- Tweet URL Input -->
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="tweet-url">
+                    Tweet URL
+                </label>
+                <input 
+                    x-model="tweetUrl"
+                    type="text" 
+                    id="tweet-url" 
+                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    placeholder="https://twitter.com/username/status/123456789"
+                >
+                <p class="text-sm text-gray-500 mt-1">Or paste the tweet text directly below</p>
+            </div>
+            
+            <!-- Direct Tweet Text Input -->
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="tweet-text">
+                    Tweet Text
+                </label>
+                <textarea 
+                    x-model="tweetText"
+                    id="tweet-text" 
+                    rows="4" 
+                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Paste the tweet text here..."
+                ></textarea>
+            </div>
+            
+            <!-- Tone Selection Panel -->
+            <div class="mb-6">
+                <h3 class="block text-gray-700 text-sm font-bold mb-2">Select Tone(s)</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <label class="inline-flex items-center bg-white p-3 rounded-lg border hover:shadow-md cursor-pointer">
+                        <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" value="intelligent" x-model="tones">
+                        <span class="ml-2 text-gray-700">Intelligent</span>
+                    </label>
+                    <label class="inline-flex items-center bg-white p-3 rounded-lg border hover:shadow-md cursor-pointer">
+                        <input type="checkbox" class="form-checkbox h-5 w-5 text-green-600" value="witty" x-model="tones">
+                        <span class="ml-2 text-gray-700">Witty</span>
+                    </label>
+                    <label class="inline-flex items-center bg-white p-3 rounded-lg border hover:shadow-md cursor-pointer">
+                        <input type="checkbox" class="form-checkbox h-5 w-5 text-purple-600" value="snarky" x-model="tones">
+                        <span class="ml-2 text-gray-700">Snarky</span>
+                    </label>
+                    <label class="inline-flex items-center bg-white p-3 rounded-lg border hover:shadow-md cursor-pointer">
+                        <input type="checkbox" class="form-checkbox h-5 w-5 text-red-600" value="formal" x-model="tones">
+                        <span class="ml-2 text-gray-700">Formal</span>
+                    </label>
+                    <label class="inline-flex items-center bg-white p-3 rounded-lg border hover:shadow-md cursor-pointer">
+                        <input type="checkbox" class="form-checkbox h-5 w-5 text-yellow-600" value="casual" x-model="tones">
+                        <span class="ml-2 text-gray-700">Casual</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Character Limit Setting -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-gray-700 text-sm font-bold" for="character-limit">
+                        Character Limit
+                    </label>
+                    <span class="text-sm text-gray-600" x-text="characterLimit + ' characters'"></span>
+                </div>
+                <input 
+                    type="range" 
+                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                    min="140" 
+                    max="280" 
+                    step="10" 
+                    x-model="characterLimit"
+                    id="character-limit"
+                >
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>140</span>
+                    <span>280</span>
+                </div>
+            </div>
+            
+            <!-- Error Display -->
+            <div x-show="error" class="mb-4 p-3 bg-red-100 text-red-700 rounded-lg" x-text="error"></div>
+            
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-3">
+                <button 
+                    @click="generateReply"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors duration-200 flex items-center"
+                    :disabled="loading || (!tweetText && !tweetUrl) || tones.length === 0"
+                >
+                    <span x-show="!loading">Generate Reply</span>
+                    <span x-show="loading">Generating...</span>
+                </button>
+                <button 
+                    @click="tweetText = ''; tweetUrl = ''; reply = ''; error = '';"
+                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg transition-colors duration-200"
+                >
+                    Reset
+                </button>
+            </div>
+        </div>
+        
+        <!-- Reply Preview Section -->
+        <div 
+            x-show="reply" 
+            class="max-w-3xl mx-auto bg-white shadow-md rounded-lg p-6"
+        >
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Your Generated Reply</h2>
+            
+            <div class="p-4 border border-gray-200 rounded-lg mb-4">
+                <p class="text-gray-800" x-text="reply"></p>
+                
+                <div class="mt-4 flex justify-between items-center">
+                    <span class="text-sm text-gray-500" x-text="characterCount + ' / ' + characterLimit + ' characters'"></span>
+                    
+                    <button 
+                        @click="copyToClipboard"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors duration-200 flex items-center"
+                    >
+                        <span x-text="copied ? 'Copied!' : 'Copy Reply'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-12 py-6 bg-white shadow-inner">
+        <div class="container mx-auto px-4 text-center text-gray-600 text-sm">
+            <p>Custom Tweet Reply Generator &copy; 2025 - A tool to craft personalized tweet replies in your own voice</p>
+        </div>
+    </footer>
+</body>
+</html>

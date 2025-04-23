@@ -57,6 +57,20 @@ def get_twitter_client():
         print(f"Error initializing Twitter client: {str(e)}")
         return None
 
+def delete_all_previous_tweets(api):
+    """Delete all tweets from the authenticated user's timeline."""
+    try:
+        user = api.verify_credentials()
+        for status in tweepy.Cursor(api.user_timeline, user_id=user.id, tweet_mode="extended").items():
+            try:
+                api.destroy_status(status.id)
+                print(f"Deleted tweet ID: {status.id}")
+            except Exception as e:
+                print(f"Failed to delete tweet ID {status.id}: {e}")
+        print("All previous tweets deleted.")
+    except Exception as e:
+        print(f"Error deleting previous tweets: {e}")
+
 def find_due_post(data, current_time):
     """Find the earliest pending post that is due."""
     due_post = None
@@ -142,6 +156,18 @@ def post_due_tweets():
     if not check_env_vars():
         print("Failed environment variable check")
         sys.exit(1)
+    
+    # Authenticate Tweepy API
+    auth = tweepy.OAuth1UserHandler(
+        os.getenv('X_API_KEY'),
+        os.getenv('X_API_SECRET'),
+        os.getenv('X_ACCESS_TOKEN'),
+        os.getenv('X_ACCESS_TOKEN_SECRET')
+    )
+    api = tweepy.API(auth)
+    
+    # Delete all previous tweets before posting new ones
+    delete_all_previous_tweets(api)
     
     # Initialize Twitter client
     try:
